@@ -1,0 +1,609 @@
+{
+    "openapi": "3.0.2",
+    "info": {
+        "title": "ecm_api",
+        "version": "1.0.0",
+        "description": "ECM API for users"
+    },
+    "servers": [
+        {
+            "url": "http://{host}:{port}/ecm-api/v1",
+            "variables": {
+                "host": {
+                    "default": "localhost",
+                    "description": "API host name"
+                },
+                "port": {
+                    "default": "8080"
+                }
+            }
+        }
+    ],
+    "paths": {
+        "/create_folder": {
+            "post": {
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/FolderCreationRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "201": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/FolderCreationSuccessResponse"
+                                }
+                            }
+                        },
+                        "description": "Successfully created new folder"
+                    },
+                    "400": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ClientError"
+                                }
+                            }
+                        },
+                        "description": "Some of the parameters are missing or not valid."
+                    },
+                    "403": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ClientError"
+                                }
+                            }
+                        },
+                        "description": "User does not have the required access to perform the action."
+                    },
+                    "404": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ClientError"
+                                }
+                            }
+                        },
+                        "description": "The parent folder could not be found, or the authenticated user does not have access to the parent folder."
+                    },
+                    "409": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ClientError"
+                                }
+                            }
+                        },
+                        "description": "The folder is locked or the folder already exists."
+                    }
+                }
+            }
+        },
+        "/get_file/{fileId}": {
+            "get": {
+                "parameters": [
+                    {
+                        "name": "fileId",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/octet-stream": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/FileDownloadData"
+                                }
+                            }
+                        },
+                        "description": "A binary file"
+                    },
+                    "202": {
+                        "headers": {
+                            "Retry-After": {
+                                "schema": {
+                                    "type": "integer"
+                                },
+                                "description": "Time in seconds after which the file will be available for the client to download."
+                            }
+                        },
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "default": "File not ready for download",
+                                            "type": "string"
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        "description": "File is not ready to be downloaded."
+                    },
+                    "default": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "default": "File not ready for download",
+                                            "type": "string"
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        "description": "File not found"
+                    }
+                },
+                "description": "Get file"
+            },
+            "parameters": [
+                {
+                    "name": "fileId",
+                    "description": "File ID",
+                    "schema": {
+                        "type": "string"
+                    },
+                    "in": "path",
+                    "required": true
+                }
+            ]
+        },
+        "/download_file": {
+            "post": {
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/FileDownloadRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/octet-stream": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/FileDownloadData"
+                                }
+                            }
+                        },
+                        "description": "A binary file"
+                    },
+                    "202": {
+                        "headers": {
+                            "Retry-After": {
+                                "schema": {
+                                    "type": "integer"
+                                },
+                                "description": "Time in seconds after which the file will be available for the client to download."
+                            }
+                        },
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "default": "File not ready for download",
+                                            "type": "string"
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        "description": "File is not ready to be downloaded."
+                    },
+                    "default": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "default": "File not ready for download",
+                                            "type": "string"
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        "description": "File not found"
+                    }
+                },
+                "description": "Get file"
+            }
+        },
+        "/upload_file": {
+            "post": {
+                "requestBody": {
+                    "content": {
+                        "multipart/form-data": {
+                            "schema": {
+                                "$ref": "#/components/schemas/FileUploadData"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/UploadFileSuccessResponse"
+                                }
+                            }
+                        },
+                        "description": "Document ID of uploaded content is returned"
+                    },
+                    "401": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "default": "File not ready for download",
+                                            "type": "string"
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        "description": "Folder error"
+                    },
+                    "402": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "default": "File not ready for download",
+                                            "type": "string"
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        "description": "File exists error"
+                    }
+                }
+            }
+        },
+        "/search": {
+            "post": {
+                "requestBody": {
+                    "description": "query for file or folder",
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/Query"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/FileArray"
+                                }
+                            }
+                        },
+                        "description": "File or Folder obtained"
+                    }
+                },
+                "description": "Get file"
+            }
+        },
+        "/citizen_metadata_search": {
+            "post": {
+                "requestBody": {
+                    "description": "query using citizen metadata",
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/CitizenMetadataQuery"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/FileArray"
+                                }
+                            }
+                        },
+                        "description": "File(s) obtained"
+                    }
+                },
+                "description": "Get files based on citizen metadata"
+            }
+        },
+        "/document_metadata_search": {
+            "post": {
+                "requestBody": {
+                    "description": "query using document metadata",
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/DocumentMetadataQuery"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/FileArray"
+                                }
+                            }
+                        },
+                        "description": "File(s) obtained"
+                    }
+                },
+                "description": "Get files based on document metadata"
+            }
+        }
+    },
+    "components": {
+        "schemas": {
+            "FolderCreationRequest": {
+                "title": "Request object body for folder creation",
+                "type": "object",
+                "properties": {
+                    "citizen_metadata": {
+                        "$ref": "#/components/schemas/CitizenMetadata"
+                    }
+                }
+            },
+            "FolderCreationSuccessResponse": {
+                "title": "Response for successful folder creation",
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "description": "The unique identifier that represents the folder.",
+                        "type": "string"
+                    }
+                }
+            },
+            "UploadFileSuccessResponse": {
+                "title": "Response for successful file upload",
+                "type": "object",
+                "properties": {
+                    "documentId": {
+                        "description": "Document ID of uploaded content",
+                        "type": "string"
+                    }
+                }
+            },
+            "ClientError": {
+                "title": "Generic error",
+                "type": "object",
+                "properties": {
+                    "code": {
+                        "description": "Error code",
+                        "type": "string"
+                    },
+                    "message": {
+                        "description": "Error description",
+                        "type": "string"
+                    }
+                }
+            },
+            "CitizenMetadata": {
+                "title": "Citizen metadata",
+                "type": "object",
+                "properties": {
+                    "logon_user_id": {
+                        "type": "string"
+                    },
+                    "mpi_id": {
+                        "type": "string"
+                    },
+                    "sys_id": {
+                        "type": "string"
+                    },
+                    "firstName": {
+                        "description": "First name",
+                        "type": "string"
+                    },
+                    "lastName": {
+                        "description": "Last name",
+                        "type": "string"
+                    },
+                    "dob": {
+                        "format": "date",
+                        "description": "Date of birth",
+                        "type": "string"
+                    },
+                    "ssn4": {
+                        "description": "Last 4 digits of SSN",
+                        "pattern": "\\d{4}",
+                        "type": "string"
+                    }
+                }
+            },
+            "DocumentMetadata": {
+                "title": "Document metadata",
+                "type": "object",
+                "properties": {
+                    "program_id": {
+                        "type": "string"
+                    },
+                    "case_id": {
+                        "type": "string"
+                    }
+                }
+            },
+            "FileDownloadRequest": {
+                "type": "object",
+                "properties": {
+                    "fileId": {
+                        "type": "string"
+                    }
+                }
+            },
+            "FileUploadData": {
+                "type": "object",
+                "properties": {
+                    "file": {
+                        "format": "binary",
+                        "type": "string"
+                    },
+                    "boxFolderId": {
+                        "type": "string"
+                    },
+                    "programId": {
+                        "type": "string"
+                    },
+                    "caseId": {
+                        "type": "string"
+                    },
+                    "documentTypeMetadata": {
+                        "type": "object"
+                    },
+                    "confidentialityMetadata": {
+                        "type": "object"
+                    }
+                }
+            },
+            "Query": {
+                "title": "Search criterion",
+                "type": "object",
+                "properties": {
+                    "searchCondition": {
+                        "type": "string"
+                    },
+                    "searchType": {
+                        "enum": [
+                            "file",
+                            "folder"
+                        ],
+                        "type": "string"
+                    }
+                }
+            },
+            "CitizenMetadataQuery": {
+                "title": "Query for folder or file using Citizen Metadata",
+                "type": "object",
+                "properties": {
+                    "logon_user_id": {
+                        "type": "string"
+                    },
+                    "mpi_id": {
+                        "type": "string"
+                    },
+                    "sys_id": {
+                        "type": "string"
+                    },
+                    "lastName": {
+                        "type": "string"
+                    },
+                    "firstName": {
+                        "type": "string"
+                    },
+                    "last4SSN": {
+                        "type": "string"
+                    },
+                    "dob": {
+                        "type": "string"
+                    }
+                }
+            },
+            "DocumentMetadataQuery": {
+                "title": "Query for file using Document Metadata",
+                "type": "object",
+                "properties": {
+                    "program_id": {
+                        "type": "string"
+                    },
+                    "case_id": {
+                        "type": "string"
+                    },
+                    "documentTypeMetdata": {
+                        "type": "object"
+                    },
+                    "confidentialityTypeMetadata": {
+                        "type": "object"
+                    }
+                }
+            },
+            "FileDownloadData": {
+                "title": "File content",
+                "type": "object",
+                "properties": {
+                    "file": {
+                        "format": "binary",
+                        "type": "string"
+                    }
+                }
+            },
+            "FileArray": {
+                "title": "Array of files",
+                "type": "array",
+                "items": {
+                    "$ref": "#/components/schemas/FileInfo"
+                }
+            },
+            "FileInfo": {
+                "type": "object",
+                "properties": {
+                    "fileId": {
+                        "type": "string"
+                    },
+                    "metadata": {
+                        "$ref": "#/components/schemas/DocumentMetadata"
+                    }
+                }
+            },
+            "CitizenMetadataAddOrUpdateRequest": {
+                "type": "object",
+                "properties": {
+                    "folderId": {
+                        "type": "string"
+                    },
+                    "metadata": {
+                        "$ref": "#/components/schemas/CitizenMetadata"
+                    }
+                }
+            },
+            "DocumentMetadataAddOrUpdateRequest": {
+                "type": "object",
+                "properties": {
+                    "fileId": {
+                        "type": "string"
+                    },
+                    "metadata": {
+                        "$ref": "#/components/schemas/DocumentMetadata"
+                    }
+                }
+            }
+        }
+    }
+}

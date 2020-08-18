@@ -1,0 +1,386 @@
+openapi: 3.0.2
+info:
+  title: ecm_api
+  version: 1.0.0
+  description: ECM API for users
+servers:
+  - url: '/ecm-api/v1'
+paths:
+  /create_folder:
+    post:
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FolderCreationRequest'
+        required: true
+      responses:
+        '201':
+          description: Successfully created new folder
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FolderCreationSuccessResponse'
+        '400':
+          description: Some of the parameters are missing or not valid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClientError'
+        '403':
+          description: User does not have the required access to perform the action.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClientError'
+        '404':
+          description: 'The parent folder could not be found, or the authenticated user does not have access to the parent folder.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClientError'
+        '409':
+          description: The folder is locked or the folder already exists.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClientError'
+  '/get_file/{fileId}':
+    get:
+      description: Get file
+      parameters:
+        - in: path
+          name: fileId
+          schema:
+            type: string
+          required: true
+      responses:
+        '200':
+          description: A binary file
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        '202':
+          description: File is not ready to be downloaded.
+          content:
+            application/json:
+              schema:
+                type: string
+          headers:
+            Retry-After:
+              schema:
+                type: integer
+              description: Time in seconds after which the file will be available for the client to download.
+        default:
+          description: File not found
+          content:
+            application/json:
+              schema:
+                type: string
+  /download_file:
+    post:
+      description: Get file
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FileDownloadRequest'
+        required: true
+      responses:
+        '200':
+          description: A binary file
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        '202':
+          description: File is not ready to be downloaded.
+          content:
+            application/json:
+              schema:
+                type: string
+          headers:
+            Retry-After:
+              schema:
+                type: integer
+              description: Time in seconds after which the file will be available for the client to download.
+        default:
+          description: File not found
+          content:
+            application/json:
+              schema:
+                type: string
+  /upload_file:
+    post:
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/FileUploadData'
+        required: true
+      responses:
+        '200':
+          description: Document ID of uploaded content is returned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UploadFileResponse'
+        '401':
+          description: Folder error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UploadFileResponse'
+        '402':
+          description: File exists error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UploadFileResponse'
+  /search:
+    post:
+      description: Get file
+      requestBody:
+        description: query for file or folder
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Query'
+      responses:
+        '200':
+          description: File or Folder obtained
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FileArray'
+  /citizen_metadata_search:
+    post:
+      description: Get files based on citizen metadata
+      requestBody:
+        description: query using citizen metadata
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CitizenMetadataQuery'
+      responses:
+        '200':
+          description: File(s) obtained
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FileArray'
+  /document_metadata_search:
+    post:
+      description: Get files based on document metadata
+      requestBody:
+        description: query using document metadata
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DocumentMetadataQuery'
+      responses:
+        '200':
+          description: File(s) obtained
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FileArray'
+#  /update_citizen_metadata:
+#    put:
+#      description: Update citizen metadata of file
+#      requestBody:
+#        content:
+#          application/json:
+#            schema:
+#              $ref: '#/components/schemas/CitizenMetadataAddOrUpdateRequest'
+#      responses:
+#        '200':
+#          description: Metadata added
+#          content:
+#            application/json:
+#              schema:
+#                $ref: '#/components/schemas/FileInfo'
+  /update_document_metadata:
+    post:
+      description: Update document metadata of file
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DocumentMetadataUpdateRequest'
+      responses:
+        '200':
+          description: Metadata added
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FileInfo'
+components:
+  schemas:
+    FolderCreationRequest:
+      title: Request object body for folder creation
+      type: object
+      properties:
+        citizen_metadata:
+          $ref: '#/components/schemas/CitizenMetadata'
+    FolderCreationSuccessResponse:
+      title: Response for successful folder creation
+      type: object
+      properties:
+        id:
+          type: string
+          description: The unique identifier that represents the folder.
+    UploadFileResponse:
+      title: Response for successful file upload
+      type: object
+      properties:
+        documentId:
+          type: string
+          description: Document ID of uploaded content
+    ClientError:
+      title: Generic error
+      type: object
+      properties:
+        code:
+          type: string
+          description: Error code
+        message:
+          type: string
+          description: Error description
+    CitizenMetadata:
+      title: Citizen metadata
+      type: object
+      properties:
+        logon_user_id:
+          type: string
+        mpi_id:
+          type: string
+        sys_id:
+          type: string
+        firstName:
+          type: string
+          description: First name
+        lastName:
+          type: string
+          description: Last name
+        dob:
+          type: string
+          description: Date of birth
+          format: date
+        ssn4:
+          type: string
+          description: Last 4 digits of SSN
+          pattern: "\\d{4}"
+    DocumentMetadataList:
+      title: Document metadata list
+      type: array
+      items:
+        $ref: '#/components/schemas/DocumentMetadata'
+    DocumentMetadata:
+      title: Document metadata
+      type: object
+      properties:
+        program_id:
+          type: string
+        case_id:
+          type: string
+    FileDownloadRequest:
+      type: object
+      properties:
+        fileId:
+          type: string
+    FileUploadData:
+      type: object
+      properties:
+        file:
+          type: string
+          format: binary
+        boxFolderId:
+          type: string
+        programId:
+          type: string
+        caseId:
+          type: string
+        documentTypeMetadata:
+          type: object
+        confidentialityMetadata:
+          type: object
+    Query:
+      title: Search criterion
+      type: object
+      properties:
+        searchCondition:
+          type: string
+        searchType:
+          type: string
+          enum:
+            - file
+            - folder
+    CitizenMetadataQuery:
+      title: Query for folder or file using Citizen Metadata
+      type: object
+      properties:
+        logon_user_id:
+          type: string
+        mpi_id:
+          type: string
+        sys_id:
+          type: string
+        lastName:
+          type: string
+        firstName:
+          type: string
+        last4SSN:
+          type: string
+        dob:
+          type: string
+    DocumentMetadataQuery:
+      title: Query for file using Document Metadata
+      type: object
+      properties:
+        program_id:
+          type: string
+        case_id:
+          type: string
+        documentTypeMetdata:
+          type: object
+        confidentialityTypeMetadata:
+          type: object
+    FileDownloadData:
+      title: File content
+      type: object
+      properties:
+        file:
+          type: string
+          format: binary
+    FileArray:
+      title: Array of files
+      type: array
+      items:
+        $ref: '#/components/schemas/FileInfo'
+    FileInfo:
+      type: object
+      properties:
+        fileId:
+          type: string
+        citizenMetadata:
+          $ref: '#/components/schemas/CitizenMetadata'
+        documentMetadataList:
+          $ref: '#/components/schemas/DocumentMetadataList'
+#    CitizenMetadataAddOrUpdateRequest:
+#      type: object
+#      properties:
+#        folderId:
+#          type: string
+#        metadata:
+#          $ref: '#/components/schemas/CitizenMetadata'
+    DocumentMetadataUpdateRequest:
+      type: object
+      properties:
+        fileId:
+          type: string
+        metadata:
+          $ref: '#/components/schemas/DocumentMetadata'
